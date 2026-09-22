@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pacientes - Yanet</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container-main {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #2d2d3d;
+            padding: 30px 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-header {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid #404050;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .nav-menu {
+            list-style: none;
+            margin-top: 30px;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            margin: 5px 0;
+        }
+
+        .nav-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .nav-item.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border-left-color: #667eea;
+        }
+
+        .main-content {
+            flex: 1;
+            background: #f8f9fc;
+            overflow-y: auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d2d3d;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-badge {
+            background: #e8f4f8;
+            color: #0066cc;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-logout {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: #c0392b;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 30px;
+            background: white;
+            padding: 0 40px;
+            margin: -40px -40px 30px -40px;
+            padding: 20px 40px;
+        }
+
+        .tab {
+            padding: 12px 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            text-transform: capitalize;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d2d3d;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f5f6f8;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #2d2d3d;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #f9f9fb;
+        }
+
+        .btn-action {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-action:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        /* MODAL STYLES */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-top: 1px solid #e0e0e0;
+            background: #f9f9fb;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d2d3d;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: #e8f4f8;
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-main">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">Dedicarnos</div>
+                <div class="logo-subtitle">Gestión de Pacientes</div>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="switchTab(event, 'pacientes')">👥 Pacientes</li>
+                <li class="nav-item" onclick="switchTab(event, 'facturas')">📄 Facturas</li>
+                <li class="nav-item" onclick="switchTab(event, 'cobranzas')">💰 Cobranzas</li>
+                <li class="nav-item" onclick="switchTab(event, 'resumen')">📊 Resumen</li>
+                <li class="nav-item" onclick="switchTab(event, 'ocr')">🔍 OCR/PDFs</li>
+            </ul>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- HEADER -->
+            <div class="header">
+                <div>
+                    <div class="header-title">Gestión de Pacientes</div>
+                    <div class="header-subtitle">Control de facturación para Yanet</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-badge" id="authStatus">Conectando...</div>
+                    <button class="btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <!-- CONTENT AREA -->
+            <div class="content">
+                <!-- TAB: PACIENTES -->
+                <div id="pacientes" class="tab-content active">
+                    <div class="panel-header">
+                        <div class="panel-title">Gestión de Pacientes</div>
+                        <button class="btn-primary" onclick="openModal('agregarPaciente')">+ Agregar Paciente</button>
+                    </div>
+
+                    <div id="pacientesTable"></div>
+                </div>
+
+                <!-- TAB: FACTURAS -->
+                <div id="facturas" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Registro de Facturas</div>
+                        <button class="btn-primary" onclick="openModal('agregarFactura')">+ Nueva Factura</button>
+                    </div>
+
+                    <div id="facturasTable"></div>
+                </div>
+
+                <!-- TAB: COBRANZAS -->
+                <div id="cobranzas" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Registro de Cobranzas</div>
+                        <button class="btn-primary" onclick="openModal('agregarCobranza')">+ Registrar Cobranza</button>
+                    </div>
+
+                    <div id="cobranzasTable"></div>
+                </div>
+
+                <!-- TAB: RESUMEN -->
+                <div id="resumen" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Resumen Anual 2026</div>
+                    </div>
+
+                    <div class="table-container" id="resumenTable"></div>
+                </div>
+
+                <!-- TAB: OCR -->
+                <div id="ocr" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Procesar PDFs con IA</div>
+                    </div>
+
+                    <div style="background: white; padding: 30px; border-radius: 8px;">
+                        <div class="form-group">
+                            <label>Subir PDF de ARCA</label>
+                            <input type="file" id="pdfFile" accept=".pdf" onchange="procesarPDF()">
+                        </div>
+                        <div id="ocrStatus"></div>
+                        <div id="ocrResultados" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Modal: Agregar Paciente -->
+    <div class="modal-overlay" id="modalAgregarPaciente">
+        <div class="modal">
+            <div class="modal-header">Agregar Paciente</div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="nombre" placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" placeholder="ej@example.com">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" id="telefono" placeholder="+54 11 0000-0000">
+                    </div>
+                    <div class="form-group">
+                        <label>Obra Social</label>
+                        <input type="text" id="obraSocial" placeholder="Ej: OSDE">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nro Afiliado</label>
+                        <input type="text" id="nroAfiliado" placeholder="Número">
+                    </div>
+                    <div class="form-group">
+                        <label>Arancel por Sesión ($)</label>
+                        <input type="number" id="arancel" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="background: #999;" onclick="closeModal('agregarPaciente')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarPaciente()">Guardar Paciente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Factura -->
+    <div class="modal-overlay" id="modalAgregarFactura">
+        <div class="modal">
+            <div class="modal-header">Nueva Factura</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Paciente</label>
+                    <select id="pacienteFactura"></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Período</label>
+                        <select id="periodoFactura">
+                            <option value="">Selecciona mes</option>
+                            <option value="01">Enero</option>
+                            <option value="02">Febrero</option>
+                            <option value="03">Marzo</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Mayo</option>
+                            <option value="06">Junio</option>
+                            <option value="07">Julio</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sesiones</label>
+                        <input type="number" id="sesionesFactura" min="1" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Monto Total ($)</label>
+                    <input type="number" id="montoFactura" step="0.01" placeholder="0.00">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="background: #999;" onclick="closeModal('agregarFactura')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarFactura()">Registrar Factura</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Cobranza -->
+    <div class="modal-overlay" id="modalAgregarCobranza">
+        <div class="modal">
+            <div class="modal-header">Registrar Cobranza</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Paciente</label>
+                    <select id="pacienteCobranza"></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Período</label>
+                        <select id="periodoCobranza">
+                            <option value="">Selecciona mes</option>
+                            <option value="01">Enero</option>
+                            <option value="02">Febrero</option>
+                            <option value="03">Marzo</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Mayo</option>
+                            <option value="06">Junio</option>
+                            <option value="07">Julio</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Monto Cobrado ($)</label>
+                        <input type="number" id="montoCobranza" step="0.01" placeholder="0.00" onchange="calcularComision()">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Comisión Centro (%)</label>
+                        <input type="number" id="comisionPorcentaje" step="0.01" value="30" onchange="calcularComision()">
+                    </div>
+                    <div class="form-group">
+                        <label>A Pagar Centro ($)</label>
+                        <input type="number" id="montoCentro" step="0.01" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="background: #999;" onclick="closeModal('agregarCobranza')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarCobranza()">Registrar Cobranza</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDNGB11E19pG9lCbpbzBXr5kdkQV038z6M",
+            authDomain: "dedicarnosv1.firebaseapp.com",
+            projectId: "dedicarnosv1",
+            storageBucket: "dedicarnosv1.firebasestorage.app",
+            messagingSenderId: "326508994880",
+            appId: "1:326508994880:web:e0c825eaf27238c9ccdaa5"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let pacientesCache = [];
+        let facturasCache = [];
+        let cobranzasCache = [];
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarAutenticacion();
+        });
+
+        function verificarAutenticacion() {
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    auth.signInAnonymously().then(() => {
+                        cargarDatos();
+                    }).catch(error => {
+                        document.getElementById('authStatus').innerHTML = '❌ Error';
+                    });
+                } else {
+                    cargarDatos();
+                }
+            });
+        }
+
+        async function cargarDatos() {
+            try {
+                const pacSnap = await db.collection('pacientes').get();
+                pacientesCache = [];
+                pacSnap.forEach(doc => pacientesCache.push({ id: doc.id, ...doc.data() }));
+
+                const facSnap = await db.collection('facturas').get();
+                facturasCache = [];
+                facSnap.forEach(doc => facturasCache.push({ id: doc.id, ...doc.data() }));
+
+                const cobSnap = await db.collection('cobranzas').get();
+                cobranzasCache = [];
+                cobSnap.forEach(doc => cobranzasCache.push({ id: doc.id, ...doc.data() }));
+
+                actualizarUI();
+                document.getElementById('authStatus').innerHTML = '✅ Conectado';
+            } catch (error) {
+                document.getElementById('authStatus').innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function guardarPaciente() {
+            const nombre = document.getElementById('nombre').value.trim();
+            if (!nombre) { alert('Ingresa nombre'); return; }
+
+            try {
+                await db.collection('pacientes').add({
+                    nombre,
+                    email: document.getElementById('email').value,
+                    telefono: document.getElementById('telefono').value,
+                    obraSocial: document.getElementById('obraSocial').value,
+                    nroAfiliado: document.getElementById('nroAfiliado').value,
+                    arancel: parseFloat(document.getElementById('arancel').value) || 0,
+                    fechaCreacion: new Date()
+                });
+                closeModal('agregarPaciente');
+                limpiarFormulario(['nombre', 'email', 'telefono', 'obraSocial', 'nroAfiliado', 'arancel']);
+                cargarDatos();
+                mostrarAlerta('✅ Paciente agregado', 'success');
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function guardarFactura() {
+            const pacId = document.getElementById('pacienteFactura').value;
+            const periodo = document.getElementById('periodoFactura').value;
+            if (!pacId || !periodo) { alert('Completa campos'); return; }
+
+            try {
+                await db.collection('facturas').add({
+                    pacienteId: pacId,
+                    periodo,
+                    sesiones: parseInt(document.getElementById('sesionesFactura').value) || 0,
+                    monto: parseFloat(document.getElementById('montoFactura').value) || 0,
+                    fechaRegistro: new Date()
+                });
+                closeModal('agregarFactura');
+                cargarDatos();
+                mostrarAlerta('✅ Factura registrada', 'success');
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function guardarCobranza() {
+            const pacId = document.getElementById('pacienteCobranza').value;
+            const periodo = document.getElementById('periodoCobranza').value;
+            const monto = parseFloat(document.getElementById('montoCobranza').value) || 0;
+            if (!pacId || !periodo || monto <= 0) { alert('Completa campos'); return; }
+
+            try {
+                await db.collection('cobranzas').add({
+                    pacienteId: pacId,
+                    periodo,
+                    montoCobrado: monto,
+                    comision: parseFloat(document.getElementById('comisionPorcentaje').value) || 0,
+                    montoPagarCentro: parseFloat(document.getElementById('montoCentro').value) || 0,
+                    fechaRegistro: new Date()
+                });
+                closeModal('agregarCobranza');
+                cargarDatos();
+                mostrarAlerta('✅ Cobranza registrada', 'success');
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        function calcularComision() {
+            const monto = parseFloat(document.getElementById('montoCobranza').value) || 0;
+            const comision = parseFloat(document.getElementById('comisionPorcentaje').value) || 0;
+            document.getElementById('montoCentro').value = (monto * comision / 100).toFixed(2);
+        }
+
+        async function procesarPDF() {
+            const file = document.getElementById('pdfFile').files[0];
+            if (!file) return;
+
+            const statusDiv = document.getElementById('ocrStatus');
+            statusDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 30px; height: 30px; border: 3px solid #f0f0f0; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                let textoCompleto = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    textoCompleto += pageText + '\n';
+                }
+
+                const regexMonto = /\$?\s*(\d+[\.,]\d{2})/g;
+                const matches = textoCompleto.match(regexMonto);
+                const montos = matches ? matches.map(m => m.replace(/[\$\s]/g, '')) : [];
+
+                document.getElementById('ocrResultados').innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>✓ PDF Procesado</strong><br>
+                        Montos encontrados: ${montos.slice(0, 3).join(', ')}<br>
+                        <small>Completa los datos en la pestaña de Facturas</small>
+                    </div>
+                `;
+                statusDiv.innerHTML = '';
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="alert alert-error">❌ Error al procesar PDF</div>';
+            }
+        }
+
+        function actualizarUI() {
+            actualizarPacientes();
+            actualizarSelectores();
+            actualizarFacturas();
+            actualizarCobranzas();
+            actualizarResumen();
+        }
+
+        function actualizarPacientes() {
+            const div = document.getElementById('pacientesTable');
+            if (pacientesCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">No hay pacientes registrados</div></div>';
+                return;
+            }
+
+            let html = '<div class="table-container"><table><thead><tr><th>Nombre</th><th>Obra Social</th><th>Email</th><th>Teléfono</th><th>Arancel</th><th>Acciones</th></tr></thead><tbody>';
+            pacientesCache.forEach(p => {
+                html += `<tr>
+                    <td><strong>${p.nombre}</strong></td>
+                    <td>${p.obraSocial || '-'}</td>
+                    <td>${p.email || '-'}</td>
+                    <td>${p.telefono || '-'}</td>
+                    <td>$${p.arancel || 0}</td>
+                    <td>
+                        <button class="btn-action" onclick="editarPaciente('${p.id}')">Editar</button>
+                        <button class="btn-action btn-danger" onclick="eliminarPaciente('${p.id}')">Eliminar</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            div.innerHTML = html;
+        }
+
+        function actualizarSelectores() {
+            const selectPacientes = ['pacienteFactura', 'pacienteCobranza'];
+            selectPacientes.forEach(id => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = '<option value="">Selecciona paciente</option>';
+                pacientesCache.forEach(p => {
+                    sel.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+                });
+            });
+        }
+
+        function actualizarFacturas() {
+            const div = document.getElementById('facturasTable');
+            if (facturasCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-text">No hay facturas registradas</div></div>';
+                return;
+            }
+
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let html = '<div class="table-container"><table><thead><tr><th>Paciente</th><th>Período</th><th>Sesiones</th><th>Monto</th><th>Acciones</th></tr></thead><tbody>';
+            facturasCache.forEach(f => {
+                const pac = pacientesCache.find(p => p.id === f.pacienteId);
+                html += `<tr>
+                    <td>${pac ? pac.nombre : 'Desconocido'}</td>
+                    <td>${meses[parseInt(f.periodo) - 1]}</td>
+                    <td>${f.sesiones}</td>
+                    <td>$${f.monto.toFixed(2)}</td>
+                    <td><button class="btn-action btn-danger" onclick="eliminarFactura('${f.id}')">Eliminar</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            div.innerHTML = html;
+        }
+
+        function actualizarCobranzas() {
+            const div = document.getElementById('cobranzasTable');
+            if (cobranzasCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No hay cobranzas registradas</div></div>';
+                return;
+            }
+
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let html = '<div class="table-container"><table><thead><tr><th>Paciente</th><th>Período</th><th>Monto Cobrado</th><th>Comisión</th><th>A Centro</th><th>Acciones</th></tr></thead><tbody>';
+            cobranzasCache.forEach(c => {
+                const pac = pacientesCache.find(p => p.id === c.pacienteId);
+                html += `<tr>
+                    <td>${pac ? pac.nombre : 'Desconocido'}</td>
+                    <td>${meses[parseInt(c.periodo) - 1]}</td>
+                    <td>$${c.montoCobrado.toFixed(2)}</td>
+                    <td>${c.comision}%</td>
+                    <td>$${c.montoPagarCentro.toFixed(2)}</td>
+                    <td><button class="btn-action btn-danger" onclick="eliminarCobranza('${c.id}')">Eliminar</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            div.innerHTML = html;
+        }
+
+        function actualizarResumen() {
+            const div = document.getElementById('resumenTable');
+            if (pacientesCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Sin datos para mostrar</div></div>';
+                return;
+            }
+
+            let html = '<table><thead><tr><th>Paciente</th><th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th><th>May</th><th>Jun</th><th>Jul</th><th>Ago</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th><th>Total</th></tr></thead><tbody>';
+            pacientesCache.forEach(p => {
+                const meses = {};
+                for (let i = 1; i <= 12; i++) meses[i] = 0;
+                facturasCache.filter(f => f.pacienteId === p.id).forEach(f => {
+                    meses[parseInt(f.periodo)] += f.monto;
+                });
+                const total = Object.values(meses).reduce((a, b) => a + b, 0);
+                html += '<tr><td><strong>' + p.nombre + '</strong></td>';
+                for (let i = 1; i <= 12; i++) html += '<td>$' + meses[i].toFixed(2) + '</td>';
+                html += '<td style="font-weight: 700;">$' + total.toFixed(2) + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            div.innerHTML = html;
+        }
+
+        // Utility functions
+        function switchTab(event, tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function openModal(modalName) {
+            document.getElementById('modal' + modalName.charAt(0).toUpperCase() + modalName.slice(1)).classList.add('active');
+        }
+
+        function closeModal(modalName) {
+            document.getElementById('modal' + modalName.charAt(0).toUpperCase() + modalName.slice(1)).classList.remove('active');
+        }
+
+        async function eliminarPaciente(id) {
+            if (confirm('¿Eliminar este paciente?')) {
+                try {
+                    await db.collection('pacientes').doc(id).delete();
+                    cargarDatos();
+                    mostrarAlerta('✅ Paciente eliminado', 'success');
+                } catch (error) {
+                    mostrarAlerta('❌ Error', 'error');
+                }
+            }
+        }
+
+        async function eliminarFactura(id) {
+            if (confirm('¿Eliminar factura?')) {
+                try {
+                    await db.collection('facturas').doc(id).delete();
+                    cargarDatos();
+                    mostrarAlerta('✅ Factura eliminada', 'success');
+                } catch (error) {
+                    mostrarAlerta('❌ Error', 'error');
+                }
+            }
+        }
+
+        async function eliminarCobranza(id) {
+            if (confirm('¿Eliminar cobranza?')) {
+                try {
+                    await db.collection('cobranzas').doc(id).delete();
+                    cargarDatos();
+                    mostrarAlerta('✅ Cobranza eliminada', 'success');
+                } catch (error) {
+                    mostrarAlerta('❌ Error', 'error');
+                }
+            }
+        }
+
+        function limpiarFormulario(campos) {
+            campos.forEach(c => {
+                const el = document.getElementById(c);
+                if (el) el.value = '';
+            });
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const div = document.createElement('div');
+            div.className = `alert alert-${tipo}`;
+            div.innerHTML = mensaje;
+            document.querySelector('.content').insertBefore(div, document.querySelector('.content').firstChild);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        function logout() {
+            auth.signOut().then(() => location.reload());
+        }
+    </script>
+</body>
+</html>
