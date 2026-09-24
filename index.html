@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pacientes - Yanet</title>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@8.10.1/firebase-auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container-main {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #2d2d3d;
+            padding: 30px 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-header {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid #404050;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .nav-menu {
+            list-style: none;
+            margin-top: 30px;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            margin: 5px 0;
+        }
+
+        .nav-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .nav-item.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border-left-color: #667eea;
+        }
+
+        .main-content {
+            flex: 1;
+            background: #f8f9fc;
+            overflow-y: auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d2d3d;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-badge {
+            background: #e8f4f8;
+            color: #0066cc;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-logout {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: #c0392b;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 30px;
+            background: white;
+            padding: 0 40px;
+            margin: -40px -40px 30px -40px;
+            padding: 20px 40px;
+        }
+
+        .tab {
+            padding: 12px 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            text-transform: capitalize;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d2d3d;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f5f6f8;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #2d2d3d;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #f9f9fb;
+        }
+
+        .btn-action {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-action:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        /* MODAL STYLES */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal.detalle {
+            max-width: 1000px;
+            max-height: 95vh;
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            font-size: 20px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            border-top: 1px solid #e0e0e0;
+            background: #f9f9fb;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d2d3d;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: #e8f4f8;
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-main">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">Dedicarnos</div>
+                <div class="logo-subtitle">Gestión de Pacientes</div>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item active" onclick="switchTab(event, 'resumen')">📊 Resumen</li>
+                <li class="nav-item" onclick="switchTab(event, 'pacientes')">👥 Pacientes</li>
+                <li class="nav-item" onclick="switchTab(event, 'facturas')">📄 Facturas</li>
+                <li class="nav-item" onclick="switchTab(event, 'cobranzas')">💰 Cobranzas</li>
+                <li class="nav-item" onclick="switchTab(event, 'ocr')">🔍 OCR/PDFs</li>
+                <li class="nav-item" onclick="switchTab(event, 'analisis')">📈 Análisis</li>
+            </ul>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- HEADER -->
+            <div class="header">
+                <div>
+                    <div class="header-title">Gestión de Pacientes</div>
+                    <div class="header-subtitle">Control de facturación para Yanet</div>
+                </div>
+                <div class="header-right">
+                    <div class="status-badge" id="authStatus">Conectando...</div>
+                    <button class="btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <!-- CONTENT AREA -->
+            <div class="content">
+                <!-- TAB: RESUMEN -->
+                <div id="resumen" class="tab-content active">
+                    <div class="panel-header">
+                        <div class="panel-title">Resumen Anual 2026</div>
+                    </div>
+
+                    <div class="table-container" id="resumenTable"></div>
+                </div>
+
+                <!-- TAB: PACIENTES -->
+                <div id="pacientes" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Gestión de Pacientes</div>
+                        <button class="btn-primary" onclick="openModal('agregarPaciente')">+ Agregar Paciente</button>
+                    </div>
+
+                    <div id="pacientesTable"></div>
+                </div>
+
+                <!-- TAB: FACTURAS -->
+                <div id="facturas" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Registro de Facturas</div>
+                        <button class="btn-primary" onclick="openModal('agregarFactura')">+ Nueva Factura</button>
+                    </div>
+
+                    <div id="facturasTable"></div>
+                </div>
+
+                <!-- TAB: COBRANZAS -->
+                <div id="cobranzas" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Registro de Cobranzas</div>
+                        <button class="btn-primary" onclick="openModal('agregarCobranza')">+ Registrar Cobranza</button>
+                    </div>
+
+                    <div id="cobranzasTable"></div>
+                </div>
+
+                <!-- TAB: OCR -->
+                <div id="ocr" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Procesar PDFs con IA</div>
+                    </div>
+
+                    <div style="background: white; padding: 30px; border-radius: 8px;">
+                        <div class="form-group">
+                            <label>Subir PDF de ARCA</label>
+                            <input type="file" id="pdfFile" accept=".pdf" onchange="procesarPDF()">
+                        </div>
+                        <div id="ocrStatus"></div>
+                        <div id="ocrResultados" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: ANÁLISIS -->
+                <div id="analisis" class="tab-content">
+                    <div class="panel-header">
+                        <div class="panel-title">Análisis y Métricas</div>
+                    </div>
+
+                    <div id="analisisContent" style="background: white; padding: 30px; border-radius: 8px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Modal: Agregar Paciente -->
+    <div class="modal-overlay" id="modalAgregarPaciente">
+        <div class="modal">
+            <div class="modal-header">Agregar Paciente</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Apellido y Nombre</label>
+                    <input type="text" id="nombre" placeholder="Ej: Juan Pérez">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Obra Social</label>
+                        <input type="text" id="obraSocial" placeholder="Ej: OSDE">
+                    </div>
+                    <div class="form-group">
+                        <label>CUIT Obra Social</label>
+                        <input type="text" id="cuitObraSocial" placeholder="Ej: 30-12345678-1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Condición IVA</label>
+                    <select id="condicionIVA">
+                        <option value="">Seleccionar</option>
+                        <option value="Responsable Inscripto">Responsable Inscripto</option>
+                        <option value="Responsable No Inscripto">Responsable No Inscripto</option>
+                        <option value="Monotributista">Monotributista</option>
+                        <option value="Exento">Exento</option>
+                        <option value="No Contribuyente">No Contribuyente</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="descripcion" placeholder="Ej: Paciente derivado por..." style="resize: vertical; min-height: 80px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Observaciones</label>
+                    <textarea id="observaciones" placeholder="Notas adicionales..." style="resize: vertical; min-height: 80px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="background: #999;" onclick="closeModal('agregarPaciente')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarPaciente()">Guardar Paciente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Factura -->
+    <div class="modal-overlay" id="modalAgregarFactura">
+        <div class="modal">
+            <div class="modal-header">Nueva Factura</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Paciente</label>
+                    <select id="pacienteFactura"></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Período</label>
+                        <select id="periodoFactura">
+                            <option value="">Selecciona mes</option>
+                            <option value="01">Enero</option>
+                            <option value="02">Febrero</option>
+                            <option value="03">Marzo</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Mayo</option>
+                            <option value="06">Junio</option>
+                            <option value="07">Julio</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sesiones</label>
+                        <input type="number" id="sesionesFactura" min="1" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Monto Total ($)</label>
+                    <input type="number" id="montoFactura" step="0.01" placeholder="0.00">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="background: #999;" onclick="closeModal('agregarFactura')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarFactura()">Registrar Factura</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Cobranza -->
+    <div class="modal-overlay" id="modalAgregarCobranza">
+        <div class="modal">
+            <div class="modal-header">Registrar Cobranza</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Paciente</label>
+                    <select id="pacienteCobranza"></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Período</label>
+                        <select id="periodoCobranza">
+                            <option value="">Selecciona mes</option>
+                            <option value="01">Enero</option>
+                            <option value="02">Febrero</option>
+                            <option value="03">Marzo</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Mayo</option>
+                            <option value="06">Junio</option>
+                            <option value="07">Julio</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Cobranza</label>
+                        <input type="date" id="fechaCobranza">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Monto Cobrado ($)</label>
+                        <input type="number" id="montoCobranza" step="0.01" placeholder="0.00" onchange="calcularComision()">
+                    </div>
+                    <div class="form-group">
+                        <label>Retenciones ($)</label>
+                        <input type="number" id="retenciones" step="0.01" placeholder="0.00" onchange="calcularComision()">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Comisión Centro (%)</label>
+                        <input type="number" id="comisionPorcentaje" step="0.01" value="30" onchange="calcularComision()">
+                    </div>
+                    <div class="form-group">
+                        <label>A Pagar Centro ($)</label>
+                        <input type="number" id="montoCentro" step="0.01" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="background: #999;" onclick="closeModal('agregarCobranza')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarCobranza()">Registrar Cobranza</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Detalles Paciente -->
+    <div class="modal-overlay" id="modalDetallesPaciente" onclick="cerrarAlClickearFuera(event, 'detallesPaciente')">
+        <div class="modal detalle" onclick="event.stopPropagation()">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>Ficha del Paciente</div>
+                <button onclick="closeModal('detallesPaciente')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: white; padding: 0; line-height: 1;">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="detallesContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" style="background: #999;" onclick="closeModal('detallesPaciente')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDNGB11E19pG9lCbpbzBXr5kdkQV038z6M",
+            authDomain: "dedicarnosv1.firebaseapp.com",
+            projectId: "dedicarnosv1",
+            storageBucket: "dedicarnosv1.firebasestorage.app",
+            messagingSenderId: "326508994880",
+            appId: "1:326508994880:web:e0c825eaf27238c9ccdaa5"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let pacientesCache = [];
+        let facturasCache = [];
+        let cobranzasCache = [];
+        let pacienteEditando = null;
+
+        // Función para formatear números al formato argentino
+        function formatoArgentino(numero) {
+            if (numero === 0 || !numero) return '$0,00';
+            return '$' + numero.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarAutenticacion();
+        });
+
+        function verificarAutenticacion() {
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    auth.signInAnonymously().then(() => {
+                        cargarDatos();
+                    }).catch(error => {
+                        document.getElementById('authStatus').innerHTML = '❌ Error';
+                    });
+                } else {
+                    cargarDatos();
+                }
+            });
+        }
+
+        async function cargarDatos() {
+            try {
+                const pacSnap = await db.collection('pacientes').get();
+                pacientesCache = [];
+                pacSnap.forEach(doc => pacientesCache.push({ id: doc.id, ...doc.data() }));
+
+                const facSnap = await db.collection('facturas').get();
+                facturasCache = [];
+                facSnap.forEach(doc => facturasCache.push({ id: doc.id, ...doc.data() }));
+
+                const cobSnap = await db.collection('cobranzas').get();
+                cobranzasCache = [];
+                cobSnap.forEach(doc => cobranzasCache.push({ id: doc.id, ...doc.data() }));
+
+                actualizarUI();
+                document.getElementById('authStatus').innerHTML = '✅ Conectado';
+            } catch (error) {
+                document.getElementById('authStatus').innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function guardarPaciente() {
+            const nombre = document.getElementById('nombre').value.trim();
+            const obraSocial = document.getElementById('obraSocial').value.trim();
+            const condicionIVA = document.getElementById('condicionIVA').value.trim();
+
+            if (!nombre || !obraSocial || !condicionIVA) {
+                alert('Completa los campos obligatorios: Nombre, Obra Social y Condición IVA');
+                return;
+            }
+
+            try {
+                const datos = {
+                    nombre,
+                    obraSocial,
+                    cuitObraSocial: document.getElementById('cuitObraSocial').value,
+                    condicionIVA,
+                    descripcion: document.getElementById('descripcion').value,
+                    observaciones: document.getElementById('observaciones').value
+                };
+
+                if (pacienteEditando) {
+                    // Modo edición
+                    await db.collection('pacientes').doc(pacienteEditando).update(datos);
+                    mostrarAlerta('✅ Paciente actualizado', 'success');
+                    pacienteEditando = null;
+                } else {
+                    // Nuevo paciente
+                    datos.fechaCreacion = new Date();
+                    await db.collection('pacientes').add(datos);
+                    mostrarAlerta('✅ Paciente agregado', 'success');
+                }
+                closeModal('agregarPaciente');
+                limpiarFormulario(['nombre', 'obraSocial', 'cuitObraSocial', 'condicionIVA', 'descripcion', 'observaciones']);
+                cargarDatos();
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        function editarPaciente(id) {
+            const paciente = pacientesCache.find(p => p.id === id);
+            if (!paciente) return;
+
+            pacienteEditando = id;
+            document.getElementById('nombre').value = paciente.nombre;
+            document.getElementById('obraSocial').value = paciente.obraSocial;
+            document.getElementById('cuitObraSocial').value = paciente.cuitObraSocial || '';
+            document.getElementById('condicionIVA').value = paciente.condicionIVA;
+            document.getElementById('descripcion').value = paciente.descripcion || '';
+            document.getElementById('observaciones').value = paciente.observaciones || '';
+
+            // Cambiar el título del modal
+            const modal = document.getElementById('modalAgregarPaciente');
+            modal.querySelector('.modal-header').textContent = 'Editar Paciente';
+
+            openModal('agregarPaciente');
+        }
+
+        async function guardarFactura() {
+            const pacId = document.getElementById('pacienteFactura').value;
+            const periodo = document.getElementById('periodoFactura').value;
+            if (!pacId || !periodo) { alert('Completa campos'); return; }
+
+            try {
+                await db.collection('facturas').add({
+                    pacienteId: pacId,
+                    periodo,
+                    sesiones: parseInt(document.getElementById('sesionesFactura').value) || 0,
+                    monto: parseFloat(document.getElementById('montoFactura').value) || 0,
+                    fechaRegistro: new Date()
+                });
+                closeModal('agregarFactura');
+                cargarDatos();
+                mostrarAlerta('✅ Factura registrada', 'success');
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function guardarCobranza() {
+            const pacId = document.getElementById('pacienteCobranza').value;
+            const periodo = document.getElementById('periodoCobranza').value;
+            const monto = parseFloat(document.getElementById('montoCobranza').value) || 0;
+            const retenciones = parseFloat(document.getElementById('retenciones').value) || 0;
+            const fechaCobranza = document.getElementById('fechaCobranza').value;
+            if (!pacId || !periodo || monto <= 0) { alert('Completa campos'); return; }
+
+            try {
+                await db.collection('cobranzas').add({
+                    pacienteId: pacId,
+                    periodo,
+                    montoCobrado: monto,
+                    retenciones: retenciones,
+                    comision: parseFloat(document.getElementById('comisionPorcentaje').value) || 0,
+                    montoPagarCentro: parseFloat(document.getElementById('montoCentro').value) || 0,
+                    fechaCobranza: fechaCobranza ? new Date(fechaCobranza) : new Date(),
+                    fechaRegistro: new Date()
+                });
+                closeModal('agregarCobranza');
+                limpiarFormulario(['pacienteCobranza', 'periodoCobranza', 'montoCobranza', 'retenciones', 'fechaCobranza', 'comisionPorcentaje', 'montoCentro']);
+                cargarDatos();
+                mostrarAlerta('✅ Cobranza registrada', 'success');
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        function calcularComision() {
+            const monto = parseFloat(document.getElementById('montoCobranza').value) || 0;
+            const comision = parseFloat(document.getElementById('comisionPorcentaje').value) || 0;
+            document.getElementById('montoCentro').value = (monto * comision / 100).toFixed(2);
+        }
+
+        async function procesarPDF() {
+            const file = document.getElementById('pdfFile').files[0];
+            if (!file) return;
+
+            const statusDiv = document.getElementById('ocrStatus');
+            statusDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 30px; height: 30px; border: 3px solid #f0f0f0; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                let textoCompleto = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    textoCompleto += pageText + '\n';
+                }
+
+                // ===== EXTRACCIÓN MEJORADA PARA FORMATO ARCA =====
+
+                // ===== FUNCIÓN AUXILIAR PARA FORMATEAR NÚMEROS AL FORMATO ARGENTINO =====
+                function formatoArgentino(numero) {
+                    if (numero === 0 || !numero) return '$0,00';
+                    return '$' + numero.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                // 1. Extraer nombre del paciente - buscar patrón "Afiliado:"
+                let pacienteEncontrado = null;
+                let nombreExtraido = '';
+
+                // Buscar patrón "Afiliado: NombreApellido NombreApellido..."
+                // Captura TODO hasta "AFILIADO:" (campo de identificación)
+                const matchAfiliado = textoCompleto.match(/Afiliado:\s*([A-ZÁÉÍÓÚa-záéíóú\s]+?)\s+AFILIADO:/i);
+                if (matchAfiliado) {
+                    nombreExtraido = matchAfiliado[1].trim();
+                    console.log('Nombre extraído (Afiliado):', nombreExtraido);
+                }
+
+                // Si no encontró con AFILIADO:, intenta capturar hasta otros campos
+                if (!nombreExtraido) {
+                    const matchProducto = textoCompleto.match(/Afiliado:\s*([A-ZÁÉÍÓÚa-záéíóú\s]+?)(?:\s+(?:DNI|Valerín|CUIT|Mes|Presentación))/i);
+                    if (matchProducto) {
+                        nombreExtraido = matchProducto[1].trim();
+                        console.log('Nombre extraído (fallback):', nombreExtraido);
+                    }
+                }
+
+                // Buscar el paciente en la base de datos
+                if (nombreExtraido) {
+                    pacienteEncontrado = pacientesCache.find(p => {
+                        const nombreNormalizado = p.nombre.toLowerCase().replace(/\s+/g, '');
+                        const extraidoNormalizado = nombreExtraido.toLowerCase().replace(/\s+/g, '');
+
+                        // Extraer palabras claves (apellidos y nombres)
+                        const palabrasDB = p.nombre.toLowerCase().split(/\s+/);
+                        const palabrasPDF = nombreExtraido.toLowerCase().split(/\s+/);
+
+                        // Contar coincidencias de palabras
+                        let coincidencias = 0;
+                        palabrasPDF.forEach(palabra => {
+                            if (palabrasDB.some(p => p.includes(palabra) || palabra.includes(p))) {
+                                coincidencias++;
+                            }
+                        });
+
+                        // Requiere al menos 2 palabras coincidentes o coincidencia completa
+                        return coincidencias >= 2 ||
+                               nombreNormalizado.includes(extraidoNormalizado) ||
+                               extraidoNormalizado.includes(nombreNormalizado) ||
+                               nombreNormalizado.startsWith(extraidoNormalizado.split(' ')[0]);
+                    });
+                }
+
+                // 1b. Extraer número de factura/comprobante (Punto de Venta - Comp. Nro)
+                let numeroFacturaExtraido = '';
+                // Usar .* para capturar cualquier carácter (incluyendo espacios especiales) entre los campos
+                const matchPuntoVenta = textoCompleto.match(/Punto\s+de\s+Venta:\s*(\d+).*?Comp\.\s*Nro:\s*(\d+)/i);
+                if (matchPuntoVenta) {
+                    numeroFacturaExtraido = `${matchPuntoVenta[1]}-${matchPuntoVenta[2]}`;
+                    console.log('Número de factura extraído:', numeroFacturaExtraido);
+                } else {
+                    // Fallback: si no encuentra Punto de Venta, solo busca Comp. Nro
+                    const matchNumFactura = textoCompleto.match(/Comp\.\s*Nro:\s*(\d+)/i);
+                    if (matchNumFactura) {
+                        numeroFacturaExtraido = matchNumFactura[1].trim();
+                        console.log('Número de factura extraído (fallback):', numeroFacturaExtraido);
+                    }
+                }
+
+                // 1c. Extraer fecha de factura
+                let fechaFacturaExtraido = '';
+                // Usar patrones más flexibles para capturar la fecha
+                let matchFechaEmision = textoCompleto.match(/Fecha\s+de\s+Emisión:\s*(\d{2}\/\d{2}\/\d{4})/i);
+                if (!matchFechaEmision) {
+                    // Fallback: buscar sin "Emisión"
+                    matchFechaEmision = textoCompleto.match(/Fecha:\s*(\d{2}\/\d{2}\/\d{4})/i);
+                }
+                if (!matchFechaEmision) {
+                    // Fallback: buscar patrón de fecha DD/MM/YYYY después de ciertos textos
+                    matchFechaEmision = textoCompleto.match(/(?:Emisión|Fecha).*?(\d{2}\/\d{2}\/\d{4})/i);
+                }
+                if (matchFechaEmision) {
+                    fechaFacturaExtraido = matchFechaEmision[1].trim();
+                    console.log('Fecha de factura extraída:', fechaFacturaExtraido);
+                }
+
+                // 2. Extraer cantidad (sesiones) de la columna "Cantidad"
+                // Busca número (con o sin decimales) seguido de "unidades"
+                let sesionesExtraidas = 0;
+
+                // Intento 1: Buscar patrón "Número unidades"
+                let matchCantidad = textoCompleto.match(/(\d+(?:[.,]\d{2})?)\s+unidades/i);
+                if (matchCantidad) {
+                    sesionesExtraidas = Math.round(parseFloat(matchCantidad[1].replace(',', '.')));
+                    console.log('Sesiones extraídas (patrón 1):', sesionesExtraidas);
+                }
+
+                // Intento 2: Si no encontró, buscar después de "Cantidad" en la tabla
+                if (sesionesExtraidas === 0) {
+                    matchCantidad = textoCompleto.match(/Cantidad[^0-9]*(\d+[.,]\d{2})[^u]*unidades/i);
+                    if (matchCantidad) {
+                        sesionesExtraidas = Math.round(parseFloat(matchCantidad[1].replace(',', '.')));
+                        console.log('Sesiones extraídas (patrón 2):', sesionesExtraidas);
+                    }
+                }
+
+                // Intento 3: Buscar simplemente número entre "Cantidad" y "U. Medida" o "Precio"
+                if (sesionesExtraidas === 0) {
+                    matchCantidad = textoCompleto.match(/Cantidad[^0-9]*(\d+(?:[.,]\d{2})?)[^0-9]*(?:U\. Medida|Precio|U\.)/i);
+                    if (matchCantidad) {
+                        sesionesExtraidas = Math.round(parseFloat(matchCantidad[1].replace(',', '.')));
+                        console.log('Sesiones extraídas (patrón 3):', sesionesExtraidas);
+                    }
+                }
+
+                // 3. Extraer precio unitario - buscar en "Precio Unit."
+                let precioUnitarioExtraido = 0;
+                const matchPrecioUnit = textoCompleto.match(/Precio\s+Unit\.\s+(\d+[.,]\d{2})/i);
+                if (matchPrecioUnit) {
+                    precioUnitarioExtraido = parseFloat(matchPrecioUnit[1].replace(',', '.'));
+                    console.log('Precio unitario extraído:', precioUnitarioExtraido);
+                } else {
+                    // Fallback: buscar patrón de número grande antes de espacios y 0.00
+                    const matchPrecioFallback = textoCompleto.match(/(\d+[.,]\d{2})\s+0[.,]00/);
+                    if (matchPrecioFallback) {
+                        precioUnitarioExtraido = parseFloat(matchPrecioFallback[1].replace(',', '.'));
+                        console.log('Precio unitario extraído (fallback):', precioUnitarioExtraido);
+                    }
+                }
+
+                // Calcular monto total si no se encontró, o usar el precio unitario
+                let montoTotal = precioUnitarioExtraido;
+
+                // Si el precio unitario no se encontró, buscar subtotal
+                if (montoTotal === 0) {
+                    const matchSubtotal = textoCompleto.match(/Subtotal[:\s]+\$?\s*([0-9]+[.,][0-9]{2})/i);
+                    if (matchSubtotal) {
+                        montoTotal = parseFloat(matchSubtotal[1].replace(',', '.'));
+                        console.log('Monto extraído (Subtotal):', montoTotal);
+                    } else {
+                        // Fallback: buscar el número más grande en formato monetario
+                        const allNumbers = textoCompleto.match(/\d+[.,]\d{2}/g) || [];
+                        if (allNumbers.length > 0) {
+                            const numericValues = allNumbers.map(n => parseFloat(n.replace(',', '.')));
+                            montoTotal = Math.max(...numericValues);
+                            console.log('Monto extraído (fallback):', montoTotal);
+                        }
+                    }
+                }
+
+                // 4. Extraer período/mes del rango de fechas
+                let periodoEncontrado = null;
+                const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+                // Buscar patrón de fecha "DD/MM/YYYY"
+                const matchFecha = textoCompleto.match(/Período\s+Facturado\s+Desde:\s+(\d{2})\/(\d{2})\/(\d{4})/i);
+                if (matchFecha) {
+                    periodoEncontrado = matchFecha[2]; // Mes (MM)
+                    console.log('Mes extraído de fecha:', periodoEncontrado);
+                } else {
+                    // Fallback: buscar nombres de meses
+                    for (let i = 0; i < meses.length; i++) {
+                        if (textoCompleto.toLowerCase().includes(meses[i])) {
+                            periodoEncontrado = (i + 1).toString().padStart(2, '0');
+                            console.log('Mes extraído (nombre):', periodoEncontrado);
+                            break;
+                        }
+                    }
+                }
+
+                // Mostrar formulario para confirmar datos
+                let html = `
+                    <div style="background: #f9f9fb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #2d2d3d;">✓ Datos extraídos del PDF - Confirma antes de guardar</h3>
+                        <div class="form-group">
+                            <label>Paciente ${pacienteEncontrado ? '<span style="color: #667eea; font-weight: bold;">✓ Detectado</span>' : ''}</label>
+                            <select id="ocr_paciente" style="width: 100%; padding: 12px; border: 1px solid ${pacienteEncontrado ? '#667eea' : '#ddd'}; border-radius: 6px; font-size: 14px; background: ${pacienteEncontrado ? '#f0f4ff' : 'white'};">
+                                <option value="">Selecciona paciente</option>
+                                ${pacientesCache.map(p => `<option value="${p.id}" ${pacienteEncontrado && pacienteEncontrado.id === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                            </select>
+                            ${nombreExtraido ? `<small style="color: #666; margin-top: 5px; display: block;">Nombre detectado en PDF: "${nombreExtraido}"</small>` : ''}
+                        </div>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="form-group">
+                                <label>Nº Factura ${numeroFacturaExtraido ? '<span style="color: #667eea; font-weight: bold;">✓ Detectado</span>' : ''}</label>
+                                <input type="text" id="ocr_numero_factura" value="${numeroFacturaExtraido}" placeholder="Ej: 00000472" style="width: 100%; padding: 12px; border: 1px solid ${numeroFacturaExtraido ? '#667eea' : '#ddd'}; border-radius: 6px; font-size: 14px; background: ${numeroFacturaExtraido ? '#f0f4ff' : 'white'};">
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha Factura ${fechaFacturaExtraido ? '<span style="color: #667eea; font-weight: bold;">✓ Detectada</span>' : ''}</label>
+                                <input type="text" id="ocr_fecha_factura" value="${fechaFacturaExtraido}" placeholder="DD/MM/YYYY" style="width: 100%; padding: 12px; border: 1px solid ${fechaFacturaExtraido ? '#667eea' : '#ddd'}; border-radius: 6px; font-size: 14px; background: ${fechaFacturaExtraido ? '#f0f4ff' : 'white'};">
+                            </div>
+                        </div>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="form-group">
+                                <label>Período ${periodoEncontrado ? '<span style="color: #667eea; font-weight: bold;">✓ Detectado</span>' : ''}</label>
+                                <select id="ocr_periodo" style="width: 100%; padding: 12px; border: 1px solid ${periodoEncontrado ? '#667eea' : '#ddd'}; border-radius: 6px; font-size: 14px; background: ${periodoEncontrado ? '#f0f4ff' : 'white'};">
+                                    <option value="">Selecciona mes</option>
+                                    <option value="01" ${periodoEncontrado === '01' ? 'selected' : ''}>Enero</option>
+                                    <option value="02" ${periodoEncontrado === '02' ? 'selected' : ''}>Febrero</option>
+                                    <option value="03" ${periodoEncontrado === '03' ? 'selected' : ''}>Marzo</option>
+                                    <option value="04" ${periodoEncontrado === '04' ? 'selected' : ''}>Abril</option>
+                                    <option value="05" ${periodoEncontrado === '05' ? 'selected' : ''}>Mayo</option>
+                                    <option value="06" ${periodoEncontrado === '06' ? 'selected' : ''}>Junio</option>
+                                    <option value="07" ${periodoEncontrado === '07' ? 'selected' : ''}>Julio</option>
+                                    <option value="08" ${periodoEncontrado === '08' ? 'selected' : ''}>Agosto</option>
+                                    <option value="09" ${periodoEncontrado === '09' ? 'selected' : ''}>Septiembre</option>
+                                    <option value="10" ${periodoEncontrado === '10' ? 'selected' : ''}>Octubre</option>
+                                    <option value="11" ${periodoEncontrado === '11' ? 'selected' : ''}>Noviembre</option>
+                                    <option value="12" ${periodoEncontrado === '12' ? 'selected' : ''}>Diciembre</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sesiones ${sesionesExtraidas > 0 ? '<span style="color: #667eea; font-weight: bold;">✓ Detectadas</span>' : ''}</label>
+                                <input type="number" id="ocr_sesiones" min="0" value="${sesionesExtraidas}" placeholder="0" style="width: 100%; padding: 12px; border: 1px solid ${sesionesExtraidas > 0 ? '#667eea' : '#ddd'}; border-radius: 6px; font-size: 14px; background: ${sesionesExtraidas > 0 ? '#f0f4ff' : 'white'};">
+                            </div>
+                            <div class="form-group">
+                                <label>Precio Unitario ($) ${precioUnitarioExtraido > 0 ? '<span style="color: #667eea; font-weight: bold;">✓ Detectado</span>' : ''}</label>
+                                <input type="number" id="ocr_precio_unitario" step="0.01" value="${precioUnitarioExtraido}" placeholder="0.00" style="width: 100%; padding: 12px; border: 1px solid ${precioUnitarioExtraido > 0 ? '#667eea' : '#ddd'}; border-radius: 6px; font-size: 14px; background: ${precioUnitarioExtraido > 0 ? '#f0f4ff' : 'white'};">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Monto Total ($) ${montoTotal > 0 ? '<span style="color: #667eea; font-weight: bold;">✓ Detectado</span>' : ''}</label>
+                            <input type="number" id="ocr_monto" step="0.01" value="${montoTotal}" placeholder="0.00" style="width: 100%; padding: 12px; border: 1px solid ${montoTotal > 0 ? '#667eea' : '#ddd'}; border-radius: 6px; font-size: 14px; background: ${montoTotal > 0 ? '#f0f4ff' : 'white'}; font-weight: bold; font-size: 16px;">
+                        </div>
+                        <div style="background: #f0f4ff; padding: 12px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #667eea;">
+                            <strong style="color: #667eea;">💡 Verifica los datos extraídos:</strong>
+                            <ul style="margin: 8px 0 0 20px; font-size: 13px; color: #555;">
+                                <li>Nº Factura: ${numeroFacturaExtraido ? '✓ ' + numeroFacturaExtraido : '⚠️ Campo vacío'}</li>
+                                <li>Fecha Factura: ${fechaFacturaExtraido ? '✓ ' + fechaFacturaExtraido : '⚠️ Campo vacío'}</li>
+                                <li>Paciente: ${pacienteEncontrado ? '✓ Identificado' : '⚠️ Selecciona manualmente'}</li>
+                                <li>Período: ${periodoEncontrado ? '✓ Detectado (mes ' + periodoEncontrado + ')' : '⚠️ Selecciona manualmente'}</li>
+                                <li>Sesiones: ${sesionesExtraidas > 0 ? '✓ ' + sesionesExtraidas : '⚠️ Campo vacío'}</li>
+                                <li>Precio Unitario: ${precioUnitarioExtraido > 0 ? '✓ ' + formatoArgentino(precioUnitarioExtraido) : '⚠️ Campo vacío'}</li>
+                                <li>Monto Total: ${montoTotal > 0 ? '✓ ' + formatoArgentino(montoTotal) : '⚠️ Campo vacío'}</li>
+                            </ul>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button onclick="guardarFacturaDesdeOCR()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; flex: 1;">💾 Guardar Factura</button>
+                            <button onclick="limpiarFormularioOCR()" style="background: #999; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancelar</button>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('ocrResultados').innerHTML = html;
+                statusDiv.innerHTML = '';
+            } catch (error) {
+                console.error('Error procesando PDF:', error);
+                statusDiv.innerHTML = '<div class="alert alert-error">❌ Error al procesar PDF: ' + error.message + '</div>';
+            }
+        }
+
+        async function guardarFacturaDesdeOCR() {
+            const pacId = document.getElementById('ocr_paciente').value;
+            const periodo = document.getElementById('ocr_periodo').value;
+            const numeroFactura = document.getElementById('ocr_numero_factura').value || '';
+            const fechaFactura = document.getElementById('ocr_fecha_factura').value || '';
+            const sesiones = parseInt(document.getElementById('ocr_sesiones').value) || 0;
+            const precioUnitario = parseFloat(document.getElementById('ocr_precio_unitario').value) || 0;
+            const monto = parseFloat(document.getElementById('ocr_monto').value) || 0;
+
+            if (!pacId || !periodo) {
+                alert('Completa los campos de paciente y período');
+                return;
+            }
+
+            try {
+                await db.collection('facturas').add({
+                    pacienteId: pacId,
+                    periodo,
+                    numeroFactura,
+                    fechaFactura,
+                    sesiones,
+                    precioUnitario,
+                    monto,
+                    fechaRegistro: new Date()
+                });
+
+                limpiarFormularioOCR();
+                cargarDatos();
+                mostrarAlerta('✅ Factura guardada desde PDF', 'success');
+                document.getElementById('pdfFile').value = '';
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        function limpiarFormularioOCR() {
+            document.getElementById('ocrResultados').innerHTML = '';
+            document.getElementById('ocrStatus').innerHTML = '';
+        }
+
+        function actualizarUI() {
+            actualizarPacientes();
+            actualizarSelectores();
+            actualizarFacturas();
+            actualizarCobranzas();
+            actualizarResumen();
+            actualizarAnalisis();
+        }
+
+        function actualizarPacientes() {
+            const div = document.getElementById('pacientesTable');
+            if (pacientesCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">No hay pacientes registrados</div></div>';
+                return;
+            }
+
+            let html = '<div class="table-container"><table><thead><tr><th>Nombre</th><th>Obra Social</th><th>CUIT</th><th>Condición IVA</th><th>Acciones</th></tr></thead><tbody>';
+            pacientesCache.forEach(p => {
+                html += `<tr>
+                    <td><strong>${p.nombre}</strong></td>
+                    <td>${p.obraSocial || '-'}</td>
+                    <td>${p.cuitObraSocial || '-'}</td>
+                    <td><span class="badge badge-primary">${p.condicionIVA || '-'}</span></td>
+                    <td>
+                        <button class="btn-action" onclick="editarPaciente('${p.id}')">Editar</button>
+                        <button class="btn-action btn-danger" onclick="eliminarPaciente('${p.id}')">Eliminar</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            div.innerHTML = html;
+        }
+
+        function actualizarSelectores() {
+            const selectPacientes = ['pacienteFactura', 'pacienteCobranza'];
+            selectPacientes.forEach(id => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = '<option value="">Selecciona paciente</option>';
+                pacientesCache.forEach(p => {
+                    sel.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+                });
+            });
+        }
+
+        function actualizarFacturas() {
+            const div = document.getElementById('facturasTable');
+            if (facturasCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-text">No hay facturas registradas</div></div>';
+                return;
+            }
+
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let html = '<div class="table-container"><table><thead><tr><th>Paciente</th><th>Período</th><th>Sesiones</th><th>Monto</th><th>Acciones</th></tr></thead><tbody>';
+            facturasCache.forEach(f => {
+                const pac = pacientesCache.find(p => p.id === f.pacienteId);
+                html += `<tr>
+                    <td>${pac ? pac.nombre : 'Desconocido'}</td>
+                    <td>${meses[parseInt(f.periodo) - 1]}</td>
+                    <td>${f.sesiones}</td>
+                    <td>${formatoArgentino(f.monto)}</td>
+                    <td><button class="btn-action btn-danger" onclick="eliminarFactura('${f.id}')">Eliminar</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            div.innerHTML = html;
+        }
+
+        function actualizarCobranzas() {
+            const div = document.getElementById('cobranzasTable');
+            if (cobranzasCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><div class="empty-state-text">No hay cobranzas registradas</div></div>';
+                return;
+            }
+
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let html = '<div class="table-container"><table><thead><tr><th>Paciente</th><th>Período</th><th>Monto Cobrado</th><th>Retenciones</th><th>Comisión</th><th>A Centro</th><th>Acciones</th></tr></thead><tbody>';
+            cobranzasCache.forEach(c => {
+                const pac = pacientesCache.find(p => p.id === c.pacienteId);
+                html += `<tr>
+                    <td>${pac ? pac.nombre : 'Desconocido'}</td>
+                    <td>${meses[parseInt(c.periodo) - 1]}</td>
+                    <td>${formatoArgentino(c.montoCobrado)}</td>
+                    <td>${formatoArgentino(c.retenciones || 0)}</td>
+                    <td>${c.comision}%</td>
+                    <td>${formatoArgentino(c.montoPagarCentro)}</td>
+                    <td><button class="btn-action btn-danger" onclick="eliminarCobranza('${c.id}')">Eliminar</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            div.innerHTML = html;
+        }
+
+        function actualizarResumen() {
+            const div = document.getElementById('resumenTable');
+            if (pacientesCache.length === 0) {
+                div.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Sin datos para mostrar</div></div>';
+                return;
+            }
+
+            let html = '<div class="table-container"><table><thead><tr><th>Paciente</th><th>Obra Social</th><th>Total Facturado</th><th>Total Cobrado</th><th>Pendiente Cobrar</th><th>Pendiente a Centro</th></tr></thead><tbody>';
+            pacientesCache.forEach(p => {
+                // Calcular totales de facturas
+                const totalFacturado = facturasCache
+                    .filter(f => f.pacienteId === p.id)
+                    .reduce((sum, f) => sum + f.monto, 0);
+
+                // Calcular totales de cobranzas
+                const totalCobrado = cobranzasCache
+                    .filter(c => c.pacienteId === p.id)
+                    .reduce((sum, c) => sum + c.montoCobrado, 0);
+
+                // Calcular pendiente a pagar a centros
+                const pendienteCentro = cobranzasCache
+                    .filter(c => c.pacienteId === p.id)
+                    .reduce((sum, c) => sum + c.montoPagarCentro, 0);
+
+                const pendienteCobrar = totalFacturado - totalCobrado;
+
+                html += `<tr onclick="abrirDetallesPaciente('${p.id}')" style="cursor: pointer;">
+                    <td><strong>${p.nombre}</strong></td>
+                    <td>${p.obraSocial || '-'}</td>
+                    <td>${formatoArgentino(totalFacturado)}</td>
+                    <td>${formatoArgentino(totalCobrado)}</td>
+                    <td>${formatoArgentino(pendienteCobrar)}</td>
+                    <td>${formatoArgentino(pendienteCentro)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            div.innerHTML = html;
+        }
+
+        function abrirDetallesPaciente(pacienteId) {
+            const paciente = pacientesCache.find(p => p.id === pacienteId);
+            if (!paciente) return;
+
+            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const yearActual = new Date().getFullYear();
+
+            let html = `
+                <div style="margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 15px; color: #2d2d3d;">Datos del Paciente</h3>
+                    <div style="background: #f9f9fb; padding: 20px; border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px;">
+                            <div><strong>Nombre:</strong> ${paciente.nombre}</div>
+                            <div><strong>Obra Social:</strong> ${paciente.obraSocial || '-'}</div>
+                            <div><strong>CUIT Obra Social:</strong> ${paciente.cuitObraSocial || '-'}</div>
+                            <div><strong>Condición IVA:</strong> ${paciente.condicionIVA || '-'}</div>
+                            <div style="grid-column: span 2; display: flex; align-items: center; gap: 10px;">
+                                <div style="flex: 1;">
+                                    <strong>Descripción:</strong> ${paciente.descripcion || '-'}
+                                </div>
+                                <button onclick="copiarAlPortapapeles('${paciente.descripcion || ''}', this)" style="background: #667eea; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap;">📋 Copiar</button>
+                            </div>
+                            <div style="grid-column: span 2;"><strong>Observaciones:</strong> ${paciente.observaciones || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: #2d2d3d;">Movimientos - Año</h3>
+                        <select id="selectorAno" onchange="actualizarTablaDetalles('${pacienteId}')" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th>Nro Factura</th>
+                                    <th>Fecha Factura</th>
+                                    <th>Cant. Sesiones</th>
+                                    <th>Valor Sesión</th>
+                                    <th>Total Facturado</th>
+                                    <th>Fecha Cobranza</th>
+                                    <th>Importe Cobrado</th>
+                                    <th>Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaDetallesPaciente">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('detallesContent').innerHTML = html;
+            actualizarTablaDetalles(pacienteId);
+            openModal('detallesPaciente');
+        }
+
+        function actualizarAnalisis() {
+            const div = document.getElementById('analisisContent');
+
+            // Cálculos globales
+            let totalFacturado = 0;
+            let totalCobrado = 0;
+            let totalComision = 0;
+            let totalRetenciones = 0;
+
+            facturasCache.forEach(f => {
+                totalFacturado += f.monto;
+            });
+
+            cobranzasCache.forEach(c => {
+                totalCobrado += c.montoCobrado;
+                totalComision += c.montoPagarCentro;
+                totalRetenciones += c.retenciones || 0;
+            });
+
+            const pendienteCobrar = totalFacturado - totalCobrado;
+
+            // Pacientes con más deudas
+            const deudaByPaciente = [];
+            pacientesCache.forEach(p => {
+                const factPac = facturasCache.filter(f => f.pacienteId === p.id).reduce((sum, f) => sum + f.monto, 0);
+                const cobPac = cobranzasCache.filter(c => c.pacienteId === p.id).reduce((sum, c) => sum + c.montoCobrado, 0);
+                const deuda = factPac - cobPac;
+                if (deuda > 0) {
+                    deudaByPaciente.push({ nombre: p.nombre, deuda });
+                }
+            });
+            deudaByPaciente.sort((a, b) => b.deuda - a.deuda);
+
+            // HTML del análisis
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        <div style="font-size: 12px; font-weight: 600; opacity: 0.9; text-transform: uppercase;">Total Facturado</div>
+                        <div style="font-size: 32px; font-weight: 700; margin-top: 10px;">${formatoArgentino(totalFacturado)}</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);">
+                        <div style="font-size: 12px; font-weight: 600; opacity: 0.9; text-transform: uppercase;">Total Cobrado</div>
+                        <div style="font-size: 32px; font-weight: 700; margin-top: 10px;">${formatoArgentino(totalCobrado)}</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);">
+                        <div style="font-size: 12px; font-weight: 600; opacity: 0.9; text-transform: uppercase;">Pendiente por Cobrar</div>
+                        <div style="font-size: 32px; font-weight: 700; margin-top: 10px;">${formatoArgentino(pendienteCobrar)}</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);">
+                        <div style="font-size: 12px; font-weight: 600; opacity: 0.9; text-transform: uppercase;">Comisión a Centros</div>
+                        <div style="font-size: 32px; font-weight: 700; margin-top: 10px;">${formatoArgentino(totalComision)}</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(142, 68, 173, 0.3);">
+                        <div style="font-size: 12px; font-weight: 600; opacity: 0.9; text-transform: uppercase;">Retenciones Totales</div>
+                        <div style="font-size: 32px; font-weight: 700; margin-top: 10px;">${formatoArgentino(totalRetenciones)}</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 20px; color: #2d2d3d;">Pacientes con Mayor Deuda</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Deuda Pendiente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${deudaByPaciente.length === 0 ? '<tr><td colspan="2" style="text-align: center; color: #999;">Todos los pacientes al día ✓</td></tr>' :
+                                    deudaByPaciente.map(d => `
+                                        <tr>
+                                            <td><strong>${d.nombre}</strong></td>
+                                            <td style="font-weight: 700; color: #e74c3c;">${formatoArgentino(d.deuda)}</td>
+                                        </tr>
+                                    `).join('')
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            div.innerHTML = html;
+        }
+
+        function actualizarTablaDetalles(pacienteId) {
+            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const selectorAno = document.getElementById('selectorAno');
+            const anoSeleccionado = selectorAno ? selectorAno.value : new Date().getFullYear().toString();
+
+            let html = '';
+
+            for (let i = 1; i <= 12; i++) {
+                const periodoStr = i.toString().padStart(2, '0');
+
+                // Buscar factura para este mes
+                const factura = facturasCache.find(f => f.pacienteId === pacienteId && f.periodo === periodoStr);
+                const nroFactura = factura ? (factura.numeroFactura || factura.id.substring(0, 8).toUpperCase()) : '-';
+                const fechaFactura = factura && factura.fechaFactura ? factura.fechaFactura : '-';
+                const sesiones = factura ? factura.sesiones : 0;
+                const totalFacturado = factura ? factura.monto : 0;
+                const valorSesion = sesiones > 0 ? (totalFacturado / sesiones) : 0;
+
+                // Buscar cobranza para este mes
+                const cobranza = cobranzasCache.find(c => c.pacienteId === pacienteId && c.periodo === periodoStr);
+                const fechaCobranza = cobranza && cobranza.fechaCobranza ? new Date(cobranza.fechaCobranza).toLocaleDateString('es-AR') : '-';
+                const importeCobrado = cobranza ? cobranza.montoCobrado : 0;
+                const saldo = totalFacturado - importeCobrado;
+
+                html += `
+                    <tr>
+                        <td><strong>${meses[i-1]}</strong></td>
+                        <td>${nroFactura}</td>
+                        <td>${fechaFactura}</td>
+                        <td>${sesiones}</td>
+                        <td>${formatoArgentino(valorSesion)}</td>
+                        <td>${formatoArgentino(totalFacturado)}</td>
+                        <td>${fechaCobranza}</td>
+                        <td>${formatoArgentino(importeCobrado)}</td>
+                        <td style="font-weight: 700; color: ${saldo > 0 ? '#e74c3c' : '#27ae60'};">${formatoArgentino(saldo)}</td>
+                    </tr>
+                `;
+            }
+
+            const tbody = document.getElementById('tablaDetallesPaciente');
+            if (tbody) tbody.innerHTML = html;
+        }
+
+        // Utility functions
+        function switchTab(event, tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function openModal(modalName) {
+            document.getElementById('modal' + modalName.charAt(0).toUpperCase() + modalName.slice(1)).classList.add('active');
+        }
+
+        function closeModal(modalName) {
+            document.getElementById('modal' + modalName.charAt(0).toUpperCase() + modalName.slice(1)).classList.remove('active');
+
+            // Reset de modo edición si se cierra el modal de pacientes
+            if (modalName === 'agregarPaciente' && pacienteEditando) {
+                pacienteEditando = null;
+                document.getElementById('modalAgregarPaciente').querySelector('.modal-header').textContent = 'Agregar Paciente';
+                limpiarFormulario(['nombre', 'obraSocial', 'cuitObraSocial', 'condicionIVA', 'descripcion', 'observaciones']);
+            }
+        }
+
+        function cerrarAlClickearFuera(event, modalName) {
+            if (event.target.id === 'modal' + modalName.charAt(0).toUpperCase() + modalName.slice(1)) {
+                closeModal(modalName);
+            }
+        }
+
+        async function eliminarPaciente(id) {
+            if (confirm('¿Eliminar este paciente?')) {
+                try {
+                    await db.collection('pacientes').doc(id).delete();
+                    cargarDatos();
+                    mostrarAlerta('✅ Paciente eliminado', 'success');
+                } catch (error) {
+                    mostrarAlerta('❌ Error', 'error');
+                }
+            }
+        }
+
+        async function eliminarFactura(id) {
+            if (confirm('¿Eliminar factura?')) {
+                try {
+                    await db.collection('facturas').doc(id).delete();
+                    cargarDatos();
+                    mostrarAlerta('✅ Factura eliminada', 'success');
+                } catch (error) {
+                    mostrarAlerta('❌ Error', 'error');
+                }
+            }
+        }
+
+        async function eliminarCobranza(id) {
+            if (confirm('¿Eliminar cobranza?')) {
+                try {
+                    await db.collection('cobranzas').doc(id).delete();
+                    cargarDatos();
+                    mostrarAlerta('✅ Cobranza eliminada', 'success');
+                } catch (error) {
+                    mostrarAlerta('❌ Error', 'error');
+                }
+            }
+        }
+
+        function limpiarFormulario(campos) {
+            campos.forEach(c => {
+                const el = document.getElementById(c);
+                if (el) el.value = '';
+            });
+        }
+
+        function copiarAlPortapapeles(texto, boton) {
+            navigator.clipboard.writeText(texto).then(() => {
+                const textoOriginal = boton.textContent;
+                boton.textContent = '✓ Copiado';
+                boton.style.background = '#27ae60';
+                setTimeout(() => {
+                    boton.textContent = textoOriginal;
+                    boton.style.background = '#667eea';
+                }, 2000);
+            }).catch(err => {
+                alert('Error al copiar');
+            });
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const div = document.createElement('div');
+            div.className = `alert alert-${tipo}`;
+            div.innerHTML = mensaje;
+            document.querySelector('.content').insertBefore(div, document.querySelector('.content').firstChild);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        function logout() {
+            auth.signOut().then(() => location.reload());
+        }
+    </script>
+</body>
+</html>
